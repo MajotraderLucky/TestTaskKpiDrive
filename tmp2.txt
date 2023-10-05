@@ -1,0 +1,61 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+func main() {
+	// Создание HTTP-клиента
+	client := &http.Client{}
+
+	// Создание тела запроса
+	requestBody := []byte(`{
+		"filter": {
+			"field": {
+				"key": "type",
+				"sign": "LIKE",
+				"value": [
+					"MATRIX_REQUEST
+				]
+			}
+		},
+		"sort": {
+			"fields": [
+				"time"
+			],
+			"direction": "desc"
+		},
+		"limit": 10
+	}`)
+
+	// Создание HTTP-запроса
+	req, err := http.NewRequest("POST", "https://development.kpi-drive.ru/_api/facts/save_fact", bytes.NewBuffer(requestBody))
+	if err != nil {
+		fmt.Println("Ошибка создания HTTP-запроса", err)
+		return
+	}
+
+	// Установка заголовков запроса
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer 48ab34464a5573519725deb5865cc74c")
+
+	// Отправка запроса и получение ответа
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Ошибка отправки HTTP-запроса", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Чтение тела ответа
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Ошибка чтения тела ответа", err)
+		return
+	}
+
+	fmt.Println(string(body))
+}

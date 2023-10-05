@@ -1,0 +1,74 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+type Filter struct {
+	Field struct {
+		Key    string   `json:"key"`
+		Sign   string   `json:"sign"`
+		Values []string `json:"values"`
+	} `json:"field"`
+}
+
+type Sort struct {
+	Fields    []string `json:"fields"`
+	Direction string   `json:"direction"`
+}
+
+type Request struct {
+	Filter Filter `json:"filter"`
+	Sort   Sort   `json:"sort"`
+	Limit  int    `json:"limit"`
+}
+
+func main() {
+	requestBody := Request{
+		Filter: Filter{
+			Field: struct {
+				Key    string   `json:"key"`
+				Sign   string   `json:"sign"`
+				Values []string `json:"values"`
+			}{
+				Key:    "type",
+				Sign:   "LIKE",
+				Values: []string{"MATRIX_REQUEST"},
+			},
+		},
+		Sort: Sort{
+			Fields:    []string{"time"},
+			Direction: "desc",
+		},
+		Limit: 1,
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		fmt.Println("Error marshaling JSON:", err)
+		return
+	}
+
+	fmt.Println("Request URL:", "https://development.kpi-drive.ru/_api/facts/save_fact")
+	fmt.Println("Request Body:", string(jsonBody))
+
+	resp, err := http.Post("https://development.kpi-drive.ru/_api/facts/save_fact", "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		fmt.Println("Error making POST request:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
+	}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:", string(responseBody))
+}

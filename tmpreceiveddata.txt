@@ -1,0 +1,91 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+const (
+	ApiUrl      = "https://development.kpi-drive.ru/_api/facts/save_fact"
+	AccessToken = "48ab34464a5573519725deb5865cc74c"
+)
+
+type Filter struct {
+	Field struct {
+		Key    string   `json:"key"`
+		Sign   string   `json:"sign"`
+		Values []string `json:"values"`
+	} `json:"field"`
+}
+
+type Sort struct {
+	Fields    []string `json:"fields"`
+	Direction string   `json:"direction"`
+}
+
+type RequestData struct {
+	Filter Filter `json:"filter"`
+	Sort   Sort   `json:"sort"`
+	Limit  int    `json:"limit"`
+}
+
+type ResponseData struct {
+	// Your data type here, based on server response
+	// TODO: Unmarshal JSON onto this struct
+}
+
+func main() {
+	requestData := RequestData{
+		Filter: Filter{
+			Field: struct {
+				Key    string   `json:"key"`
+				Sign   string   `json:"sign"`
+				Values []string `json:"values"`
+			}{
+				Key:    "type",
+				Sign:   "LIKE",
+				Values: []string{"MATRIX_REQUEST"},
+			},
+		},
+		Sort: Sort{
+			Fields:    []string{"time"},
+			Direction: "desc",
+		},
+		Limit: 1,
+	}
+
+	dataJSON, err := json.Marshal(requestData)
+	if err != nil {
+		fmt.Printf("Error creating JSON: %v\n", err)
+		return
+	}
+
+	request, _ := http.NewRequest("POST", ApiUrl, bytes.NewBuffer(dataJSON))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", AccessToken))
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+
+	if err != nil {
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+	} else {
+		data, err := io.ReadAll(response.Body)
+		if err != nil {
+			fmt.Printf("Error reading response body: %s\n", err)
+			return
+		}
+
+		var responseData ResponseData
+		err = json.Unmarshal(data, &responseData)
+		if err != nil {
+			fmt.Printf("Error parsing JSON response: %v\n", err)
+		} else {
+			// Do something with responseData
+			fmt.Printf("Received data: %+v\n", responseData)
+		}
+	}
+}
